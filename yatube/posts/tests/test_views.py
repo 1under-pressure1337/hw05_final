@@ -3,7 +3,8 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.core.cache import cache
 
-from posts.models import Group, Post
+from posts.models import Group, Post, Follow
+from http import HTTPStatus
 
 
 User = get_user_model()
@@ -52,8 +53,6 @@ class PostPagesTests(TestCase):
             reverse('posts:post_create'): 'posts/create_post.html'
         }
 
-        # Проверяем, что при обращении к name
-        # вызывается соответствующий HTML-шаблон
         for reverse_name, template in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
                 response = self.authorized_client.get(reverse_name)
@@ -99,3 +98,27 @@ class PostPagesTests(TestCase):
         )
         response_1 = self.guest_client.get(reverse('posts:index'))
         self.assertEqual(object1, response_1.content)
+
+    def test_follow_pages_available(self):
+        """
+        Авторизированный пользователь подписывается и удаляет подписки.
+        """
+        urls = [
+            reverse('posts:profile_follow',
+                    kwargs={'username': self.user}),
+            reverse('posts:profile_unfollow',
+                    kwargs={'username': self.user})
+        ]
+        for url in urls:
+            response = self.authorized_client.post(url)
+            with self.subTest(url=url):
+                self.assertEqual(response.status_code, HTTPStatus.FOUND)
+
+    def test_post_in_feed(self):
+        """Новая запись появляется в ленте того, на кого подписан."""
+        new_author = User.objects.create(username='new_author')
+        Follow.objects.create(user=self.user, author=new_author)
+        post = Post.objects.create(author=new_author)
+        response = self.authorized_client.get(reverse('posts:follow_index'))
+        object = response.context.get('page_obj').object_list
+        self.assertIn(post, object)

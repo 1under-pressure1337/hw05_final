@@ -82,6 +82,12 @@ class PostFormsTests(TestCase):
                          posts_count)
         self.assertEqual(new_post.image.name,
                          'posts/' + form_data['image'].name)
+        self.assertFormError(
+            response,
+            'form',
+            'image',
+            'Отправленный файл пуст.'
+        )
 
     def test_edit_post(self):
         """Тест редактирования поста."""

@@ -40,8 +40,8 @@ def profile(request, username):
     page_obj = paginator.get_page(page_number)
     following = False
     if user.is_authenticated:
-        is_follower = Follow.objects.filter(user=user, author=author)
-        if is_follower.exists():
+        follower = Follow.objects.filter(user=user, author=author)
+        if follower.exists():
             following = True
     following_context = {
         'user': user,
@@ -79,7 +79,6 @@ def get_page_context(queryset, request):
 def post_create(request):
     form = PostForm(request.POST or None, files=request.FILES or None)
     if request.method == 'POST':
-        form = PostForm(request.POST, files=request.FILES or None)
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
@@ -142,6 +141,7 @@ def profile_follow(request, username):
 
 @login_required
 def profile_unfollow(request, username):
+    """Отписаться от автора."""
     author = get_object_or_404(User, username=username)
     user = request.user
     following = user.follower.filter(author=author)
